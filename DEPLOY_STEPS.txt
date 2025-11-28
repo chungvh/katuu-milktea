@@ -1,0 +1,115 @@
+🚀 VERCEL DEPLOYMENT - 5 BƯỚC
+
+┌─────────────────────────────────────────────────────────────┐
+│  ✅ Source của bạn SẴN SÀNG deploy lên Vercel!              │
+│  Build test: THÀNH CÔNG ✓                                   │
+│  Files cần thiết: ĐÃ TẠO ✓                                  │
+│  .vercelignore: ĐÃ SỬA ✓ (Fixed Nov 28, 2025)             │
+└─────────────────────────────────────────────────────────────┘
+
+⚠️  IMPORTANT: .vercelignore đã được sửa lại!
+   - Removed: .git, *.md từ ignore list
+   - Reason: Vercel cần .git để track deployment
+   - See: VERCELIGNORE_FIX.md để biết chi tiết
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 BƯỚC 1: Push Code lên Git (2 phút)
+─────────────────────────────────────
+git add .
+git commit -m "Ready for Vercel deployment"
+git push origin main
+
+(Nếu chưa có repo GitHub: tạo mới tại github.com/new)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌐 BƯỚC 2: Deploy lên Vercel (3 phút)
+─────────────────────────────────────
+1. Truy cập: https://vercel.com
+2. Click "Sign Up" → Login with GitHub
+3. Click "Add New Project"
+4. Select your repository
+5. Vercel tự động detect Vite
+6. Click "Deploy" (CHƯA add env vars - sẽ làm bước 3)
+
+⏳ Đợi ~1 phút build xong...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔐 BƯỚC 3: Add Environment Variables (2 phút)
+─────────────────────────────────────────────
+Trong Vercel Dashboard:
+→ Project Settings → Environment Variables
+
+Thêm 2 biến sau:
+
+┌─────────────────────────────────────────────────────────┐
+│ Name:  VITE_SUPABASE_URL                                │
+│ Value: https://mjhcssepkfsvmwudmlla.supabase.co        │
+│ Environments: ☑ Production ☑ Preview ☑ Development      │
+├─────────────────────────────────────────────────────────┤
+│ Name:  VITE_SUPABASE_ANON_KEY                           │
+│ Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...         │
+│        (copy từ Supabase Dashboard → Settings → API)   │
+│ Environments: ☑ Production ☑ Preview ☑ Development      │
+└─────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔄 BƯỚC 4: Redeploy (1 phút)
+────────────────────────────
+→ Deployments tab → Click "..." → Redeploy
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌍 BƯỚC 5: Configure Supabase CORS (1 phút)
+────────────────────────────────────────────
+1. Vào Supabase Dashboard
+2. Settings → API → API Settings
+3. Tìm "Allowed Origins"
+4. Thêm dòng:
+   https://*.vercel.app
+
+5. Save
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ XONG! Test App
+──────────────────
+
+Your app live tại: https://your-project-name.vercel.app
+
+Test checklist:
+[ ] Guest: Đặt hàng mới
+[ ] Guest: Xem lịch sử
+[ ] Staff Login: staff / staff123
+[ ] Staff: Chốt đơn
+[ ] Admin Login: admin / admin123
+[ ] Admin: CRUD products
+[ ] Real-time: Mở 2 tabs test
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 Chi tiết đầy đủ:
+- VERCEL_READY.md  ← Quick overview
+- DEPLOYMENT.md    ← Step-by-step guide
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 Chúc mừng! Bạn đã deploy thành công!
+
+Auto-deploy:
+- Mỗi lần push code → Vercel tự động build & deploy
+- Tạo PR → Preview deployment với URL riêng
+- Rollback: Deployments → Click "..." → Promote to Production
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 Tips:
+- Custom domain: Project Settings → Domains
+- Analytics: Analytics tab (built-in)
+- Logs: View realtime logs trong Deployments → Function Logs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+

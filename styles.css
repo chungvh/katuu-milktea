@@ -1,0 +1,50 @@
+/* Global styles for Katuu modal animations and accessibility helpers */
+:root {
+  --katuu-accent: rgba(251, 191, 36, 0.95); /* amber-ish */
+}
+
+@keyframes katuu-fade-scale-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes katuu-fade-scale-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-6px) scale(0.985); }
+}
+@keyframes katuu-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes katuu-backdrop-out { from { opacity: 1; } to { opacity: 0; } }
+
+.katuu-enter { animation: katuu-fade-scale-in 220ms cubic-bezier(.2,.8,.2,1) both; }
+.katuu-exit { animation: katuu-fade-scale-out 220ms cubic-bezier(.2,.8,.2,1) both; }
+.katuu-backdrop-enter { animation: katuu-backdrop-in 220ms ease both; }
+.katuu-backdrop-exit { animation: katuu-backdrop-out 220ms ease both; }
+
+/* focus-visible helper: applies when element is keyboard-focused */
+.katuu-focus-visible:focus-visible { outline: 3px solid var(--katuu-accent); outline-offset: 2px; border-radius: 6px; }
+/* support Tailwind-like variant class name if present in DOM (escaped colon) */
+.focus-visible\:katuu-focus-visible:focus-visible { outline: 3px solid var(--katuu-accent); outline-offset: 2px; border-radius: 6px; }
+
+/* small utility to ensure the modal overlay has stacking context for animation */
+.katuu-backdrop-enter, .katuu-backdrop-exit { will-change: opacity; }
+.katuu-enter, .katuu-exit { will-change: transform, opacity; }
+
+/* Print helpers for Invoice */
+@media print {
+  /* Use A4 portrait and remove default margins in PDF/print */
+  @page { size: A4; margin: 10mm; }
+
+  /* Hide everything except invoice content if present */
+  body * { visibility: visible; }
+  .print-hidden { display: none !important; }
+
+  /* The invoice container that should be printed should have id invoice-content */
+  #invoice-content { visibility: visible !important; position: static; width: auto; padding: 0.5rem !important; margin: 0; }
+
+  /* Ensure readable sizes for print */
+  #invoice-content { font-size: 12pt; line-height: 1.35; color: #111827; }
+  #invoice-content h1 { font-size: 20pt; }
+  #invoice-content h2, #invoice-content h3 { font-size: 14pt; }
+
+  /* Remove shadows and rounded corners for print clarity */
+  #invoice-content, #invoice-content * { box-shadow: none !important; border-radius: 0 !important; }
+}

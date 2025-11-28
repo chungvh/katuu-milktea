@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+    <script type="module" src="/@vite/client"></script>
+
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Katuu - Milk Tea Ordering</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      @keyframes fadeInPop {
+        from {
+          opacity: 0;
+          transform: scale(0.9) translateY(5px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+      .animate-fade-in-pop {
+        /* Using a more custom cubic-bezier for a bouncier feel */
+        animation: fadeInPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      }
+
+      @keyframes fadeInOut {
+        0%, 100% {
+          opacity: 0;
+          transform: scale(0.9);
+        }
+        20%, 80% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      .animate-fade-in-out {
+        animation: fadeInOut 1.5s ease-in-out forwards;
+      }
+      
+      @keyframes pulse-amber-ring {
+        0%, 100% {
+          box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.4);
+        }
+        50% {
+          box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.4);
+        }
+      }
+
+      input#customerName:focus {
+        border-color: #f59e0b; /* amber-500 */
+        outline: none;
+        animation: pulse-amber-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
+      @keyframes draw-check {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      .animate-draw-check path {
+        stroke-dasharray: 50;
+        stroke-dashoffset: 50;
+        animation: draw-check 0.5s cubic-bezier(0.65, 0, 0.45, 1) 0.2s forwards;
+      }
+
+      @keyframes bobbing {
+        0%, 100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-6px);
+        }
+      }
+      .animate-bobbing {
+        animation: bobbing 2.5s ease-in-out infinite;
+      }
+
+      @keyframes fade-out-and-collapse {
+        from {
+          opacity: 1;
+          transform: scaleY(1);
+          max-height: 300px;
+        }
+        to {
+          opacity: 0;
+          transform: scaleY(0.8);
+          max-height: 0;
+          padding-top: 0;
+          padding-bottom: 0;
+          margin-bottom: 0;
+          border-width: 0;
+        }
+      }
+      .animate-fade-out-and-collapse {
+        transform-origin: top;
+        animation: fade-out-and-collapse 0.3s ease-in-out forwards;
+        overflow: hidden;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.2s ease-out forwards;
+      }
+      
+      @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+      .animate-fade-out {
+        animation: fadeOut 0.2s ease-in forwards;
+      }
+
+      @keyframes dialogEnter {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      .animate-dialog-enter {
+        animation: dialogEnter 0.2s ease-out forwards;
+      }
+
+      @keyframes dialogExit {
+        from { opacity: 1; transform: scale(1); }
+        to { opacity: 0; transform: scale(0.95); }
+      }
+      .animate-dialog-exit {
+        animation: dialogExit 0.2s ease-in forwards;
+      }
+      
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in-up {
+        animation: fadeInUp 0.5s ease-out forwards;
+      }
+    </style>
+
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-stone-50">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
