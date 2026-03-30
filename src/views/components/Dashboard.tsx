@@ -110,15 +110,21 @@ const Dashboard: React.FC<DashboardProps> = ({ onBack, orderHistory, products, c
     const stats = new Map<string, { count: number; revenue: number }>();
 
     orderHistory.forEach(order => {
-      order.toppings.forEach(topping => {
-        const existing = stats.get(topping.name);
+      order.toppings.forEach(ts => {
+        // Backward compat: old data may be Topping without quantity
+        const name = (ts as any).name || (ts as any).topping?.name || '';
+        const price = (ts as any).price || (ts as any).topping?.price || 0;
+        const qty = (ts as any).quantity || 1;
+        if (!name) return;
+
+        const existing = stats.get(name);
         if (existing) {
-          existing.count += 1;
-          existing.revenue += topping.price;
+          existing.count += qty;
+          existing.revenue += price * qty;
         } else {
-          stats.set(topping.name, {
-            count: 1,
-            revenue: topping.price,
+          stats.set(name, {
+            count: qty,
+            revenue: price * qty,
           });
         }
       });

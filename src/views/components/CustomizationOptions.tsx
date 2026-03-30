@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { Order, Topping, Size } from '@/models/types';
 import { SUGAR_LEVELS, ICE_LEVELS } from '@/models/constants';
 import OptionSelector from './OptionSelector';
@@ -9,7 +9,7 @@ interface CustomizationOptionsProps {
   order: Order;
   toppings?: Topping[];
   sizes?: Size[];
-  onToppingChange: (topping: Topping) => void;
+  onToppingQuantityChange: (topping: Topping, quantity: number) => void;
   onSizeChange: (size: Size) => void;
   onSugarChange: (sugar: string) => void;
   onIceChange: (ice: string) => void;
@@ -19,7 +19,7 @@ const CustomizationOptions: React.FC<CustomizationOptionsProps> = ({
   order,
   toppings,
   sizes,
-  onToppingChange,
+  onToppingQuantityChange,
   onSizeChange,
   onSugarChange,
   onIceChange,
@@ -31,15 +31,27 @@ const CustomizationOptions: React.FC<CustomizationOptionsProps> = ({
   const availableToppings = toppings || [];
   const availableSizes = sizes || [];
 
+  // Build quantities map from order.toppings (ToppingSelection[])
+  const toppingQuantities = useMemo(() => {
+    const map = new Map<string | number, number>();
+    order.toppings.forEach(ts => {
+      map.set(ts.topping.id, ts.quantity);
+    });
+    return map;
+  }, [order.toppings]);
+
   return (
     <div className="space-y-10">
       <OptionSelector<Topping>
         title="2. Chọn Topping"
         icon={<ToppingIcon />}
         options={availableToppings}
-        selectedOptions={order.toppings}
-        onChange={onToppingChange}
+        selectedOptions={[]}
+        onChange={() => {}}
         isMultiSelect
+        showQuantity
+        quantities={toppingQuantities}
+        onQuantityChange={onToppingQuantityChange}
         getOptionLabel={(option) => `${option.name} (+${formatVND(option.price)})`}
         getOptionValue={(option) => option.id}
       />

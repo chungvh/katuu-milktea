@@ -171,7 +171,11 @@ const PendingOrdersPanel: React.FC = () => {
                             <div className="text-stone-500 text-xs mt-1 space-y-0.5">
                               <p>Size: {item.size.name} • Đường: {item.sugar} • Đá: {item.ice}</p>
                               {item.toppings.length > 0 && (
-                                <p>Topping: {item.toppings.map(t => t.name).join(', ')}</p>
+                                <p>Topping: {item.toppings.map(ts => {
+                                  const name = (ts as any).name || (ts as any).topping?.name || '';
+                                  const qty = (ts as any).quantity || 1;
+                                  return qty > 1 ? `${name} x${qty}` : name;
+                                }).join(', ')}</p>
                               )}
                             </div>
                           </div>

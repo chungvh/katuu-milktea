@@ -226,11 +226,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, isModal = true }) => {
                 </button>
               )}
             </div>
-
-            <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-700">
-              <div className="flex items-center space-x-2 mb-1"><CheckIcon className="w-3 h-3" /><span><strong>Admin:</strong> admin / admin123</span></div>
-              <div className="flex items-center space-x-2"><CheckIcon className="w-3 h-3" /><span><strong>Staff:</strong> staff / staff123</span></div>
-            </div>
           </form>
         </div>
         {!isModal && (

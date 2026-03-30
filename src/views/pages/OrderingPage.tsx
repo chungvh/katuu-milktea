@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import type { Order, Product, Topping, Size, HistoricOrder, Category } from '@/models/types';
+import type { Order, Product, Topping, ToppingSelection, Size, HistoricOrder, Category } from '@/models/types';
 import { PRODUCTS, TOPPINGS, SIZES, SUGAR_LEVELS, ICE_LEVELS, CATEGORIES } from '@/models/constants';
 import * as menuService from '@/models/menuService';
 import ProductSelection from '@/views/components/ProductSelection';
@@ -115,7 +115,7 @@ const OrderingPage: React.FC = () => {
         if (!order.product) return 0;
         const basePrice = order.product.price;
         const sizePrice = order.size?.priceModifier || 0;
-        const toppingsPrice = order.toppings.reduce((sum, t) => sum + t.price, 0);
+        const toppingsPrice = order.toppings.reduce((sum, ts) => sum + ts.topping.price * ts.quantity, 0);
         return basePrice + sizePrice + toppingsPrice;
     }, [order]);
 
@@ -126,14 +126,29 @@ const OrderingPage: React.FC = () => {
         }, 100);
     }, []);
 
-    const handleToppingChange = useCallback((topping: Topping) => {
+    const handleToppingQuantityChange = useCallback((topping: Topping, quantity: number) => {
         setOrder(prev => {
-            const exists = prev.toppings.some(t => t.id === topping.id);
+            if (quantity <= 0) {
+                // Remove topping
+                return {
+                    ...prev,
+                    toppings: prev.toppings.filter(ts => ts.topping.id !== topping.id),
+                };
+            }
+            const exists = prev.toppings.find(ts => ts.topping.id === topping.id);
+            if (exists) {
+                // Update quantity
+                return {
+                    ...prev,
+                    toppings: prev.toppings.map(ts =>
+                        ts.topping.id === topping.id ? { ...ts, quantity } : ts
+                    ),
+                };
+            }
+            // Add new topping with quantity
             return {
                 ...prev,
-                toppings: exists
-                    ? prev.toppings.filter(t => t.id !== topping.id)
-                    : [...prev.toppings, topping],
+                toppings: [...prev.toppings, { topping, quantity }],
             };
         });
     }, []);
@@ -243,7 +258,7 @@ const OrderingPage: React.FC = () => {
                                 order={order}
                                 toppings={toppings}
                                 sizes={sizes}
-                                onToppingChange={handleToppingChange}
+                                onToppingQuantityChange={handleToppingQuantityChange}
                                 onSizeChange={handleSizeChange}
                                 onSugarChange={handleSugarChange}
                                 onIceChange={handleIceChange}

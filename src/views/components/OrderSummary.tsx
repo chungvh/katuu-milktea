@@ -140,12 +140,12 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
         </>
       )
     },
-    ...toppings.map(topping => ({
-      key: `topping-${topping.id}`,
+    ...toppings.map(ts => ({
+      key: `topping-${ts.topping.id}`,
       content: (
         <>
           <ToppingIcon className="w-4 h-4 mr-1.5 text-amber-600" />
-          <span>{topping.name} (+{formatVND(topping.price)})</span>
+          <span>{ts.topping.name}{ts.quantity > 1 ? ` x${ts.quantity}` : ''} (+{formatVND(ts.topping.price * ts.quantity)})</span>
         </>
       )
     }))

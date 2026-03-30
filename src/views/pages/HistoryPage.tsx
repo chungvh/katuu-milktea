@@ -30,9 +30,18 @@ const HistoryPage: React.FC = () => {
 
                     if (!isLoadingOrders) {
                         // Only run cleanup when OrderSession has finished loading
+                        // Grace period: chỉ cleanup đơn hàng tạo > 30s trước
+                        // để tránh race condition khi realtime chưa kịp sync
+                        const GRACE_PERIOD_MS = 30_000;
+                        const now = Date.now();
+
                         validHistory = history.filter(item => {
                             // Nếu không có pendingOrderId → keep (old orders)
                             if (!item.pendingOrderId) return true;
+
+                            // Đơn hàng mới tạo < 30s → giữ lại (chờ realtime sync)
+                            const orderAge = now - new Date(item.date).getTime();
+                            if (orderAge < GRACE_PERIOD_MS) return true;
 
                             // Check xem pending order còn tồn tại không
                             const stillPending = pendingOrders.some(

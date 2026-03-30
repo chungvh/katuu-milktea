@@ -103,7 +103,14 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({
     const drinkNames = history.map(h => h.product?.name).filter(Boolean) as string[];
     const top3Drinks = getTopN(drinkNames, 3);
 
-    const toppingNames = history.flatMap(h => h.toppings.map(t => t.name));
+    const toppingNames = history.flatMap(h => {
+      return h.toppings.flatMap(ts => {
+        // Backward compat: old data may be Topping without quantity
+        const name = (ts as any).name || (ts as any).topping?.name || '';
+        const qty = (ts as any).quantity || 1;
+        return Array(qty).fill(name);
+      });
+    });
     const top3Toppings = getTopN(toppingNames, 3);
 
     return {
@@ -347,7 +354,12 @@ const OrderHistory: React.FC<OrderHistoryProps> = ({
                     </p>
                     {order.toppings.length > 0 && (
                       <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
-                        <span className='font-medium'>Topping:</span> {order.toppings.map((t) => t.name).join(', ')}
+                        <span className='font-medium'>Topping:</span> {order.toppings.map((ts) => {
+                          // Backward compat: old data may be Topping without quantity
+                          const name = (ts as any).name || (ts as any).topping?.name || '';
+                          const qty = (ts as any).quantity || 1;
+                          return qty > 1 ? `${name} x${qty}` : name;
+                        }).join(', ')}
                       </p>
                     )}
                   </div>

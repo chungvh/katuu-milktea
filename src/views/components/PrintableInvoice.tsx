@@ -89,15 +89,21 @@ const PrintableInvoice = forwardRef<HTMLDivElement, PrintableInvoiceProps>(({ or
         {order.toppings && order.toppings.length > 0 && (
           <div className="mt-4">
             <p className="font-semibold text-stone-700 mb-2">Topping:</p>
-            {order.toppings.map((topping, index) => (
-              <div key={index} className="flex justify-between items-center py-2 pl-4 border-b border-stone-100">
-                <div className="flex items-center space-x-2">
-                  <span className="text-stone-600">•</span>
-                  <span className="text-stone-700">{topping.name}</span>
+            {order.toppings.map((ts, index) => {
+              // Backward compat: old data may be Topping without quantity
+              const name = (ts as any).name || (ts as any).topping?.name || '';
+              const price = (ts as any).price || (ts as any).topping?.price || 0;
+              const qty = (ts as any).quantity || 1;
+              return (
+                <div key={index} className="flex justify-between items-center py-2 pl-4 border-b border-stone-100">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-stone-600">•</span>
+                    <span className="text-stone-700">{name}{qty > 1 ? ` x${qty}` : ''}</span>
+                  </div>
+                  <span className="text-stone-600">+{formatVND(price * qty)}</span>
                 </div>
-                <span className="text-stone-600">+{formatVND(topping.price)}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

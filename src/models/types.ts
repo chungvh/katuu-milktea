@@ -17,6 +17,12 @@ export interface Topping {
   price: number;
 }
 
+// Topping đã chọn, kèm số lượng
+export interface ToppingSelection {
+  topping: Topping;
+  quantity: number; // >= 1
+}
+
 export interface Size {
   id: number;
   name: string;
@@ -25,7 +31,7 @@ export interface Size {
 
 export interface Order {
   product: Product | null;
-  toppings: Topping[];
+  toppings: ToppingSelection[];
   size: Size;
   sugar: string;
   ice: string;
@@ -44,7 +50,7 @@ export interface HistoricOrder extends Order {
 // Single order item (1 product + customization)
 export interface OrderItem {
   product: Product;
-  toppings: Topping[];
+  toppings: ToppingSelection[];
   size: Size;
   sugar: string;
   ice: string;
