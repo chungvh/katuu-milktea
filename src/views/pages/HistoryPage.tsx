@@ -23,27 +23,52 @@ const HistoryPage: React.FC = () => {
                 if (stored) {
                     const history: HistoricOrder[] = JSON.parse(stored);
 
-                    // Auto-cleanup: Remove orders đã bị admin chốt/xóa
-                    // ⚠️ CRITICAL: Only cleanup when pendingOrders is fully loaded
-                    // If isLoadingOrders=true, pendingOrders=[] → would delete everything on F5!
+                    // Auto-cleanup and sync: Remove orders đã bị admin chốt/xóa, và cập nhật giá/món
                     let validHistory = history;
 
                     if (!isLoadingOrders) {
-                        // Only run cleanup when OrderSession has finished loading
-                        // Grace period: chỉ cleanup đơn hàng tạo > 30s trước
-                        // để tránh race condition khi realtime chưa kịp sync
                         const GRACE_PERIOD_MS = 30_000;
                         const now = Date.now();
+                        let detailsUpdated = false;
 
-                        validHistory = history.filter(item => {
-                            // Nếu không có pendingOrderId → keep (old orders)
+                        // 1. Đồng bộ thông tin đơn chờ từ API (tránh lệch món/giá khi Admin sửa)
+                        const syncedHistory = history.map(item => {
+                            if (item.pendingOrderId) {
+                                const matchingPending = pendingOrders.find(po => po.id === item.pendingOrderId);
+                                if (matchingPending && matchingPending.items && matchingPending.items[0]) {
+                                    const pendingItem = matchingPending.items[0];
+                                    
+                                    const priceChanged = item.totalPrice !== matchingPending.totalPrice;
+                                    const prodChanged = item.product?.id !== pendingItem.product?.id;
+                                    const sizeChanged = item.size?.id !== pendingItem.size?.id;
+                                    const sugarChanged = item.sugar !== pendingItem.sugar;
+                                    const iceChanged = item.ice !== pendingItem.ice;
+                                    const toppingsChanged = JSON.stringify(item.toppings) !== JSON.stringify(pendingItem.toppings);
+
+                                    if (priceChanged || prodChanged || sizeChanged || sugarChanged || iceChanged || toppingsChanged) {
+                                        detailsUpdated = true;
+                                        return {
+                                            ...item,
+                                            product: pendingItem.product,
+                                            toppings: pendingItem.toppings,
+                                            size: pendingItem.size,
+                                            sugar: pendingItem.sugar,
+                                            ice: pendingItem.ice,
+                                            totalPrice: matchingPending.totalPrice
+                                        };
+                                    }
+                                }
+                            }
+                            return item;
+                        });
+
+                        // 2. Dọn dẹp đơn hàng đã hoàn thành hoặc bị hủy
+                        validHistory = syncedHistory.filter(item => {
                             if (!item.pendingOrderId) return true;
 
-                            // Đơn hàng mới tạo < 30s → giữ lại (chờ realtime sync)
                             const orderAge = now - new Date(item.date).getTime();
                             if (orderAge < GRACE_PERIOD_MS) return true;
 
-                            // Check xem pending order còn tồn tại không
                             const stillPending = pendingOrders.some(
                                 po => po.id === item.pendingOrderId
                             );
@@ -55,14 +80,14 @@ const HistoryPage: React.FC = () => {
                             return stillPending;
                         });
 
-                        // Save cleaned history
-                        if (validHistory.length !== history.length) {
+                        // Lưu lại lịch sử mới nếu có sự thay đổi kích thước mảng hoặc nội dung đơn hàng
+                        if (validHistory.length !== history.length || detailsUpdated) {
                             localStorage.setItem('katuu_order_history', JSON.stringify(validHistory));
                             window.dispatchEvent(new Event('historyUpdated')); // Notify Header
-                            console.log(`✅ Cleaned ${history.length - validHistory.length} merged orders from history`);
+                            console.log(`✅ Synced and cleaned order history`);
                         }
                     } else {
-                        console.log('⏳ Skipping cleanup - pending orders still loading');
+                        console.log('⏳ Skipping cleanup & sync - pending orders still loading');
                     }
 
                     setOrderHistory(validHistory);

@@ -39,7 +39,7 @@ export interface Order {
 }
 
 export interface HistoricOrder extends Order {
-  id: number;
+  id: string | number;
   date: string;
   totalPrice: number;
   pendingOrderId?: string; // Reference to Supabase pending_orders.id

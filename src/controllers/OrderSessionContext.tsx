@@ -48,7 +48,7 @@ export const OrderSessionProvider: React.FC<{ children: ReactNode }> = ({ childr
         totalPrice
       });
 
-      // Realtime hook will auto-update state
+      await refresh();
 
       // Return pending order ID for caller to link with history
       return pendingOrder.id;
@@ -56,7 +56,7 @@ export const OrderSessionProvider: React.FC<{ children: ReactNode }> = ({ childr
       console.error('Failed to add pending order:', error);
       throw error;
     }
-  }, []);
+  }, [refresh]);
 
   const updatePendingOrder = useCallback(async (orderId: string, customerName: string, items: OrderItem[]) => {
     const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
@@ -69,13 +69,14 @@ export const OrderSessionProvider: React.FC<{ children: ReactNode }> = ({ childr
         totalPrice
       });
 
+      await refresh();
       // Realtime hook will auto-update state
       console.log('✅ Updated pending order:', orderId);
     } catch (error) {
       console.error('Failed to update pending order:', error);
       throw error;
     }
-  }, []);
+  }, [refresh]);
 
   const mergePendingOrders = useCallback(async (orderIds: string[], mergedBy: string) => {
     try {
@@ -89,29 +90,28 @@ export const OrderSessionProvider: React.FC<{ children: ReactNode }> = ({ childr
       await Promise.all(orderIds.map(id => orderService.deletePendingOrder(id)));
       console.log('✅ Deleted pending orders');
 
-      // Realtime hook will auto-update state
-
       // Clear order history
       await orderService.clearOrderHistory();
 
+      await refresh();
       console.log('🎉 Orders merged and history cleared successfully!');
     } catch (error) {
       console.error('❌ Failed to merge orders:', error);
       throw error;
     }
-  }, [pendingOrders]);
+  }, [pendingOrders, refresh]);
 
   const deletePendingOrder = useCallback(async (orderId: string) => {
     try {
       // Delete via service (will trigger realtime update)
       await orderService.deletePendingOrder(orderId);
 
-      // Realtime hook will auto-update state
+      await refresh();
     } catch (error) {
       console.error('Failed to delete pending order:', error);
       throw error;
     }
-  }, []);
+  }, [refresh]);
 
   const getPendingOrdersCount = useCallback(() => {
     return pendingOrders.filter(o => o.status === 'pending').length;

@@ -1,55 +1,29 @@
-import { supabase, isSupabaseConfigured } from '@/config/supabase';
+import { apiFetch } from '@/config/api';
 import type { PendingOrder, MergedOrder, OrderItem, HistoricOrder } from '@/models/types';
 
 /**
- * Supabase Service for Orders
- * Handles all database operations with fallback to localStorage
+ * Laravel API Service for Orders
+ * Handles all database operations via HTTP client with fallback to localStorage
  */
 
 // ============ PENDING ORDERS ============
 
 export async function fetchPendingOrders(): Promise<PendingOrder[]> {
-  if (!isSupabaseConfigured()) {
-    console.warn('Supabase not configured, using localStorage');
-    const stored = localStorage.getItem('pendingOrders');
-    return stored ? JSON.parse(stored) : [];
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('pending_orders')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    // Convert snake_case to camelCase
-    const orders = (data || []).map((row: any) => ({
-      id: row.id,
-      customerName: row.customer_name,
-      items: row.items,
-      totalPrice: row.total_price,
-      createdAt: row.created_at,
-      status: row.status
-    }));
+    const orders = await apiFetch<PendingOrder[]>('/api/pending-orders');
 
     // Sync localStorage with API data
     if (orders.length === 0) {
-      // API returns empty → clear localStorage
-      console.log('✅ API returns empty pending orders, clearing localStorage and guest history');
-
-      // remove pendingOrders key
+      const previouslyHadOrders = localStorage.getItem('pendingOrders') !== null;
+      if (previouslyHadOrders) {
+        console.log('✅ API returns empty pending orders, clearing localStorage and guest history');
+      }
       localStorage.removeItem('pendingOrders');
-
-      // Also clear guest order history (bobaBlissOrderHistory) and mark cleared timestamp so clients can compare
+      
       try {
         const ts = Date.now().toString();
         localStorage.setItem('orderHistoryClearedAt', ts);
-        // set to empty array string so UI code parsing will handle it consistently
         localStorage.setItem('bobaBlissOrderHistory', '[]');
-
-        // trigger cross-tab event and a transient flag used elsewhere
         localStorage.setItem('_triggerClear', ts);
         setTimeout(() => localStorage.removeItem('_triggerClear'), 100);
         window.dispatchEvent(new CustomEvent('orderHistoryCleared'));
@@ -57,13 +31,12 @@ export async function fetchPendingOrders(): Promise<PendingOrder[]> {
         console.error('Failed to clear guest history after pending_orders empty', e);
       }
     } else {
-      // API has data → update localStorage
       localStorage.setItem('pendingOrders', JSON.stringify(orders));
     }
 
     return orders;
   } catch (error) {
-    console.error('Failed to fetch pending orders:', error);
+    console.error('Failed to fetch pending orders from API:', error);
     // Fallback to localStorage
     const stored = localStorage.getItem('pendingOrders');
     return stored ? JSON.parse(stored) : [];
@@ -78,42 +51,19 @@ export async function createPendingOrder(order: Omit<PendingOrder, 'id' | 'creat
     status: 'pending',
   };
 
-  if (!isSupabaseConfigured()) {
-    // Fallback: localStorage
-    const stored = localStorage.getItem('pendingOrders');
-    const orders = stored ? JSON.parse(stored) : [];
-    orders.unshift(newOrder);
-    localStorage.setItem('pendingOrders', JSON.stringify(orders));
-    return newOrder;
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('pending_orders')
-      .insert([{
+    const createdOrder = await apiFetch<PendingOrder>('/api/pending-orders', {
+      method: 'POST',
+      data: {
         id: newOrder.id,
-        customer_name: newOrder.customerName,
-        items: newOrder.items as any,
-        total_price: newOrder.totalPrice,
-        created_at: newOrder.createdAt,
+        customerName: newOrder.customerName,
+        items: newOrder.items,
+        totalPrice: newOrder.totalPrice,
         status: newOrder.status
-      }])
-      .select()
-      .single();
+      }
+    });
 
-    if (error) throw error;
-
-    // Convert response from snake_case to camelCase
-    const createdOrder: PendingOrder = data ? {
-      id: data.id,
-      customerName: data.customer_name,
-      items: data.items,
-      totalPrice: data.total_price,
-      createdAt: data.created_at,
-      status: data.status
-    } : newOrder;
-
-    // Also save to localStorage as backup
+    // Save to localStorage as backup
     const stored = localStorage.getItem('pendingOrders');
     const orders = stored ? JSON.parse(stored) : [];
     orders.unshift(createdOrder);
@@ -121,7 +71,7 @@ export async function createPendingOrder(order: Omit<PendingOrder, 'id' | 'creat
 
     return createdOrder;
   } catch (error) {
-    console.error('Failed to create pending order:', error);
+    console.error('Failed to create pending order in API:', error);
     // Fallback: save to localStorage only
     const stored = localStorage.getItem('pendingOrders');
     const orders = stored ? JSON.parse(stored) : [];
@@ -138,57 +88,19 @@ export async function updatePendingOrder(
   orderId: string,
   data: { customerName: string; items: OrderItem[]; totalPrice: number }
 ): Promise<PendingOrder> {
-  const updatedOrder: PendingOrder = {
-    id: orderId, // Keep same ID
-    customerName: data.customerName,
-    items: data.items,
-    totalPrice: data.totalPrice,
-    createdAt: new Date().toISOString(), // Update timestamp
-    status: 'pending',
-  };
-
-  if (isSupabaseConfigured()) {
-    try {
-      const { data: result, error } = await supabase
-        .from('pending_orders')
-        .update({
-          customer_name: data.customerName,
-          items: data.items,
-          total_price: data.totalPrice,
-          created_at: new Date().toISOString(),
-        })
-        .eq('id', orderId)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      console.log('✅ Updated pending order in Supabase:', orderId);
-
-      // Also update localStorage
-      const stored = localStorage.getItem('pendingOrders');
-      const orders: PendingOrder[] = stored ? JSON.parse(stored) : [];
-      const index = orders.findIndex(o => o.id === orderId);
-      if (index !== -1) {
-        orders[index] = updatedOrder;
-        localStorage.setItem('pendingOrders', JSON.stringify(orders));
+  try {
+    const updatedOrder = await apiFetch<PendingOrder>(`/api/pending-orders/${orderId}`, {
+      method: 'PUT',
+      data: {
+        customerName: data.customerName,
+        items: data.items,
+        totalPrice: data.totalPrice
       }
+    });
 
-      return updatedOrder;
-    } catch (error) {
-      console.error('Failed to update pending order in Supabase:', error);
-      // Fallback: update localStorage only
-      const stored = localStorage.getItem('pendingOrders');
-      const orders: PendingOrder[] = stored ? JSON.parse(stored) : [];
-      const index = orders.findIndex(o => o.id === orderId);
-      if (index !== -1) {
-        orders[index] = updatedOrder;
-        localStorage.setItem('pendingOrders', JSON.stringify(orders));
-      }
-      return updatedOrder;
-    }
-  } else {
-    // Supabase not configured, update localStorage
+    console.log('✅ Updated pending order in API:', orderId);
+
+    // Update localStorage
     const stored = localStorage.getItem('pendingOrders');
     const orders: PendingOrder[] = stored ? JSON.parse(stored) : [];
     const index = orders.findIndex(o => o.id === orderId);
@@ -196,20 +108,39 @@ export async function updatePendingOrder(
       orders[index] = updatedOrder;
       localStorage.setItem('pendingOrders', JSON.stringify(orders));
     }
+
     return updatedOrder;
+  } catch (error) {
+    console.error('Failed to update pending order in API:', error);
+    // Fallback: update localStorage only
+    const fallbackOrder: PendingOrder = {
+      id: orderId,
+      customerName: data.customerName,
+      items: data.items,
+      totalPrice: data.totalPrice,
+      createdAt: new Date().toISOString(),
+      status: 'pending',
+    };
+    
+    const stored = localStorage.getItem('pendingOrders');
+    const orders: PendingOrder[] = stored ? JSON.parse(stored) : [];
+    const index = orders.findIndex(o => o.id === orderId);
+    if (index !== -1) {
+      orders[index] = fallbackOrder;
+      localStorage.setItem('pendingOrders', JSON.stringify(orders));
+    }
+    return fallbackOrder;
   }
 }
 
 export async function deletePendingOrder(orderId: string): Promise<void> {
-  if (isSupabaseConfigured()) {
-    try {
-      await supabase
-        .from('pending_orders')
-        .delete()
-        .eq('id', orderId);
-    } catch (error) {
-      console.error('Failed to delete pending order:', error);
-    }
+  try {
+    await apiFetch(`/api/pending-orders/${orderId}`, {
+      method: 'DELETE'
+    });
+    console.log('✅ Deleted pending order in API:', orderId);
+  } catch (error) {
+    console.error('Failed to delete pending order in API:', error);
   }
 
   // Always update localStorage
@@ -224,44 +155,19 @@ export async function deletePendingOrder(orderId: string): Promise<void> {
 // ============ MERGED ORDERS ============
 
 export async function fetchMergedOrders(): Promise<MergedOrder[]> {
-  if (!isSupabaseConfigured()) {
-    const stored = localStorage.getItem('mergedOrders');
-    return stored ? JSON.parse(stored) : [];
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('merged_orders')
-      .select('*')
-      .order('merged_at', { ascending: false });
+    const mergedOrders = await apiFetch<MergedOrder[]>('/api/merged-orders');
 
-    if (error) throw error;
-
-    // Convert snake_case to camelCase
-    const converted = (data || []).map((row: any) => ({
-      id: row.id,
-      pendingOrderIds: row.pending_order_ids,
-      customerNames: row.customer_names,
-      totalItems: row.total_items,
-      totalPrice: row.total_price,
-      mergedBy: row.merged_by,
-      mergedAt: row.merged_at,
-      items: row.items
-    }));
-
-    // Sync localStorage with API data
-    if (converted.length === 0) {
-      // API returns empty → clear localStorage
-      console.log('✅ API returns empty merged orders, clearing localStorage');
+    // Sync localStorage
+    if (mergedOrders.length === 0) {
       localStorage.removeItem('mergedOrders');
     } else {
-      // API has data → update localStorage
-      localStorage.setItem('mergedOrders', JSON.stringify(converted));
+      localStorage.setItem('mergedOrders', JSON.stringify(mergedOrders));
     }
 
-    return converted;
+    return mergedOrders;
   } catch (error) {
-    console.error('Failed to fetch merged orders:', error);
+    console.error('Failed to fetch merged orders from API:', error);
     const stored = localStorage.getItem('mergedOrders');
     return stored ? JSON.parse(stored) : [];
   }
@@ -297,52 +203,27 @@ export async function createMergedOrder(
     pendingOrderIds: orderIds,
     customerNames,
     totalItems: allItems.length,
-    totalPrice: totalPrice || 0, // Ensure not null
+    totalPrice: totalPrice || 0,
     mergedBy,
     mergedAt: new Date().toISOString(),
     items: allItems,
   };
 
-  if (!isSupabaseConfigured()) {
-    // Fallback: localStorage
-    const stored = localStorage.getItem('mergedOrders');
-    const orders = stored ? JSON.parse(stored) : [];
-    orders.unshift(mergedOrder);
-    localStorage.setItem('mergedOrders', JSON.stringify(orders));
-    return mergedOrder;
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('merged_orders')
-      .insert([{
+    const createdOrder = await apiFetch<MergedOrder>('/api/merged-orders', {
+      method: 'POST',
+      data: {
         id: mergedOrder.id,
-        pending_order_ids: mergedOrder.pendingOrderIds,
-        customer_names: mergedOrder.customerNames,
-        total_items: mergedOrder.totalItems,
-        total_price: mergedOrder.totalPrice,
-        merged_by: mergedOrder.mergedBy,
-        merged_at: mergedOrder.mergedAt,
-        items: mergedOrder.items as any
-      }])
-      .select()
-      .single();
+        pendingOrderIds: mergedOrder.pendingOrderIds,
+        customerNames: mergedOrder.customerNames,
+        totalItems: mergedOrder.totalItems,
+        totalPrice: mergedOrder.totalPrice,
+        mergedBy: mergedOrder.mergedBy,
+        items: mergedOrder.items
+      }
+    });
 
-    if (error) throw error;
-
-    // Convert response from snake_case to camelCase
-    const createdOrder: MergedOrder = data ? {
-      id: data.id,
-      pendingOrderIds: data.pending_order_ids,
-      customerNames: data.customer_names,
-      totalItems: data.total_items,
-      totalPrice: data.total_price,
-      mergedBy: data.merged_by,
-      mergedAt: data.merged_at,
-      items: data.items
-    } : mergedOrder;
-
-    // Also save to localStorage as backup
+    // Save to localStorage as backup
     const stored = localStorage.getItem('mergedOrders');
     const orders = stored ? JSON.parse(stored) : [];
     orders.unshift(createdOrder);
@@ -350,7 +231,7 @@ export async function createMergedOrder(
 
     return createdOrder;
   } catch (error) {
-    console.error('Failed to create merged order:', error);
+    console.error('Failed to create merged order in API:', error);
     // Fallback: save to localStorage only
     const stored = localStorage.getItem('mergedOrders');
     const orders = stored ? JSON.parse(stored) : [];
@@ -360,37 +241,24 @@ export async function createMergedOrder(
   }
 }
 
-// ============ ORDER HISTORY (Guest) ============
+// ============ ORDER HISTORY (Guest/Staff) ============
 
 export async function clearOrderHistory(): Promise<void> {
   console.log('🗑️ Clearing order history...');
 
   const timestamp = Date.now().toString();
 
-  // Set flag
+  // Set local flag
   localStorage.setItem('orderHistoryClearedAt', timestamp);
-  console.log('✅ Set orderHistoryClearedAt:', timestamp);
-
-  // Clear localStorage
   localStorage.setItem('bobaBlissOrderHistory', '[]');
-  console.log('✅ Cleared bobaBlissOrderHistory');
 
-  // If Supabase configured, also clear there
-  if (isSupabaseConfigured()) {
-    try {
-      // Delete old history (keep last 24h only)
-      const oneDayAgo = new Date();
-      oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-
-      await supabase
-        .from('order_history')
-        .delete()
-        .lt('created_at', oneDayAgo.toISOString());
-
-      console.log('✅ Cleared Supabase order history (older than 24h)');
-    } catch (error) {
-      console.error('Failed to clear Supabase history:', error);
-    }
+  try {
+    await apiFetch('/api/order-history', {
+      method: 'DELETE'
+    });
+    console.log('✅ Cleared API order history');
+  } catch (error) {
+    console.error('Failed to clear API history:', error);
   }
 
   // Broadcast
@@ -400,45 +268,31 @@ export async function clearOrderHistory(): Promise<void> {
 }
 
 /**
- * Fetch order history from Supabase
- * Used for Dashboard statistics
+ * Fetch order history from API
+ * Used for Dashboard statistics (flattens merged orders)
  */
 export async function fetchOrderHistory(): Promise<HistoricOrder[]> {
-  if (!isSupabaseConfigured()) {
-    // Fallback to localStorage
-    const stored = localStorage.getItem('bobaBlissOrderHistory');
-    return stored ? JSON.parse(stored) : [];
-  }
-
   try {
-    // Fetch from merged_orders table (staff orders)
-    const { data, error } = await supabase
-      .from('merged_orders')
-      .select('*')
-      .order('merged_at', { ascending: false });
-
-    if (error) throw error;
+    const mergedOrders = await fetchMergedOrders();
 
     // Convert merged orders to HistoricOrder format
-    const orders: HistoricOrder[] = (data || []).flatMap((row: any) => {
-      // Each merged order contains multiple items, convert them to individual historic orders
+    const orders: HistoricOrder[] = mergedOrders.flatMap((row: MergedOrder) => {
       return (row.items || []).map((item: any, index: number) => ({
         id: `${row.id}-item-${index}`,
-        date: row.merged_at,
+        date: row.mergedAt,
         product: item.product,
         toppings: item.toppings || [],
         size: item.size,
         sugar: item.sugar,
         ice: item.ice,
-        customerName: row.customer_names?.[0] || 'Unknown',
-        totalPrice: item.totalPrice || 0
+        customerName: row.customerNames?.[0] || 'Unknown',
+        totalPrice: item.price || item.totalPrice || 0
       }));
     });
 
     return orders;
   } catch (error) {
-    console.error('Failed to fetch order history from Supabase:', error);
-    // Fallback to localStorage
+    console.error('Failed to fetch order history:', error);
     const stored = localStorage.getItem('bobaBlissOrderHistory');
     return stored ? JSON.parse(stored) : [];
   }

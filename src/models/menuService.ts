@@ -1,24 +1,15 @@
-import { supabase, isSupabaseConfigured } from '@/config/supabase';
+import { apiFetch } from '@/config/api';
 import type { Product, Topping, Size, Category } from './types';
 import { PRODUCTS, TOPPINGS, SIZES, CATEGORIES } from './constants';
 
 /**
- * Service for fetching menu items from Supabase
- * With fallback to constants.ts
+ * Service for fetching menu items from Laravel Backend
+ * With fallback to constants.ts in case of network issues
  */
 
 export async function fetchCategories(): Promise<Category[]> {
-  if (!isSupabaseConfigured()) {
-    return CATEGORIES;
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .order('id');
-
-    if (error) throw error;
+    const data = await apiFetch<Category[]>('/api/categories');
     return data || CATEGORIES;
   } catch (error) {
     console.error('Failed to fetch categories:', error);
@@ -27,17 +18,8 @@ export async function fetchCategories(): Promise<Category[]> {
 }
 
 export async function fetchProducts(): Promise<Product[]> {
-  if (!isSupabaseConfigured()) {
-    return PRODUCTS;
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('id');
-
-    if (error) throw error;
+    const data = await apiFetch<Product[]>('/api/products');
     return data || PRODUCTS;
   } catch (error) {
     console.error('Failed to fetch products:', error);
@@ -46,17 +28,8 @@ export async function fetchProducts(): Promise<Product[]> {
 }
 
 export async function fetchToppings(): Promise<Topping[]> {
-  if (!isSupabaseConfigured()) {
-    return TOPPINGS;
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('toppings')
-      .select('*')
-      .order('id');
-
-    if (error) throw error;
+    const data = await apiFetch<Topping[]>('/api/toppings');
     return data || TOPPINGS;
   } catch (error) {
     console.error('Failed to fetch toppings:', error);
@@ -65,23 +38,12 @@ export async function fetchToppings(): Promise<Topping[]> {
 }
 
 export async function fetchSizes(): Promise<Size[]> {
-  if (!isSupabaseConfigured()) {
-    return SIZES;
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('sizes')
-      .select('*')
-      .order('id');
-
-    if (error) throw error;
-
-    // Convert snake_case to camelCase
+    const data = await apiFetch<any[]>('/api/sizes');
     return (data || SIZES).map((size: any) => ({
       id: size.id,
       name: size.name,
-      priceModifier: size.price_modifier
+      priceModifier: size.priceModifier !== undefined ? size.priceModifier : size.price_modifier
     }));
   } catch (error) {
     console.error('Failed to fetch sizes:', error);
